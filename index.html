@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Tetris-Hafan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     body {
       background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -11,19 +12,22 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
-      overflow: hidden;
+      touch-action: manipulation;
     }
     h1 {
-      margin-bottom: 20px;
-      font-size: 2.5rem;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      font-size: 2rem;
       text-shadow: 0 0 15px #0ff;
       letter-spacing: 2px;
+      text-align: center;
     }
     .game-wrapper {
       display: flex;
-      gap: 30px;
+      flex-direction: row;
+      gap: 15px;
       align-items: flex-start;
     }
     canvas {
@@ -31,28 +35,71 @@
       border: 3px solid #333;
       border-radius: 5px;
       box-shadow: 0 0 25px rgba(0, 255, 255, 0.2);
+      max-width: 60vw;
+      height: auto;
     }
     .panel {
       background: rgba(255, 255, 255, 0.05);
-      padding: 20px 30px;
+      padding: 15px 20px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 0 15px rgba(0,0,0,0.5);
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 10px;
     }
     .panel div {
-      font-size: 1.2rem;
+      font-size: 1rem;
       font-weight: bold;
       color: #aaa;
     }
     .panel span {
       display: block;
-      font-size: 2rem;
+      font-size: 1.5rem;
       color: #0ff;
       margin-top: 5px;
       text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+    .controls button {
+      background: rgba(0, 255, 255, 0.1);
+      border: 2px solid #0ff;
+      color: #0ff;
+      font-size: 1.5rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+    }
+    .controls button:active {
+      background: rgba(0, 255, 255, 0.4);
+      transform: scale(0.95);
+    }
+    @media (max-width: 600px) {
+      .game-wrapper {
+        flex-direction: column;
+        align-items: center;
+      }
+      canvas {
+        max-width: 90vw;
+      }
+      .panel {
+        flex-direction: row;
+        width: 90vw;
+        justify-content: space-around;
+        padding: 10px;
+        box-sizing: border-box;
+      }
     }
   </style>
 </head>
@@ -64,6 +111,12 @@
       <div>SCORE<span id="score">0</span></div>
       <div>LEVEL<span id="level">1</span></div>
     </div>
+  </div>
+  <div class="controls">
+    <button id="btn-left">◀</button>
+    <button id="btn-up">↻</button>
+    <button id="btn-down">▼</button>
+    <button id="btn-right">▶</button>
   </div>
   <script>
     const canvas = document.getElementById('game');
@@ -267,33 +320,58 @@
       }
     }
 
-    document.addEventListener('keydown', function(e) {
+    function moveLeft() {
       if (gameOver) return;
-      if (e.which === 37 || e.which === 39) {
-        const col = e.which === 37 ? tetromino.col - 1 : tetromino.col + 1;
-        if (isValidMove(tetromino.matrix, tetromino.row, col)) {
-          tetromino.col = col;
-        }
+      const col = tetromino.col - 1;
+      if (isValidMove(tetromino.matrix, tetromino.row, col)) tetromino.col = col;
+    }
+
+    function moveRight() {
+      if (gameOver) return;
+      const col = tetromino.col + 1;
+      if (isValidMove(tetromino.matrix, tetromino.row, col)) tetromino.col = col;
+    }
+
+    function rotateBlock() {
+      if (gameOver) return;
+      const matrix = rotate(tetromino.matrix);
+      if (isValidMove(matrix, tetromino.row, tetromino.col)) tetromino.matrix = matrix;
+    }
+
+    function moveDown() {
+      if (gameOver) return;
+      const row = tetromino.row + 1;
+      if (!isValidMove(tetromino.matrix, row, tetromino.col)) {
+        tetromino.row = row - 1;
+        placeTetromino();
+        return;
       }
-      if (e.which === 38) {
-        const matrix = rotate(tetromino.matrix);
-        if (isValidMove(matrix, tetromino.row, tetromino.col)) {
-          tetromino.matrix = matrix;
-        }
-      }
-      if (e.which === 40) {
-        const row = tetromino.row + 1;
-        if (!isValidMove(tetromino.matrix, row, tetromino.col)) {
-          tetromino.row = row - 1;
-          placeTetromino();
-          return;
-        }
-        tetromino.row = row;
-      }
+      tetromino.row = row;
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.which === 37) moveLeft();
+      if (e.which === 39) moveRight();
+      if (e.which === 38) rotateBlock();
+      if (e.which === 40) moveDown();
     });
+
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnUp = document.getElementById('btn-up');
+    const btnDown = document.getElementById('btn-down');
+
+    const addControl = (element, action) => {
+      element.addEventListener('mousedown', (e) => { e.preventDefault(); action(); });
+      element.addEventListener('touchstart', (e) => { e.preventDefault(); action(); }, {passive: false});
+    };
+
+    addControl(btnLeft, moveLeft);
+    addControl(btnRight, moveRight);
+    addControl(btnUp, rotateBlock);
+    addControl(btnDown, moveDown);
 
     rAF = requestAnimationFrame(loop);
   </script>
 </body>
-  </html>
-
+</html>
